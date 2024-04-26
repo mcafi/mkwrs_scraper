@@ -1,7 +1,11 @@
 from scraper import web_scraper
 from firebase import add_data
+from utilities import parse_lap_time, parse_time
+import json
 
 base_url = "https://mkwrs.com/mkds/"
+
+record_list = []
 
 def scrape_DS():
     soup = web_scraper(base_url)
@@ -19,9 +23,12 @@ def scrape_DS():
         scrape_track_page(url)
         scrape_track_page(url, non_sc = True)
         scrape_track_page(url, non_prb = True)
-        # scrape_flap_page(url)
-        # scrape_flap_page(url, non_sc = True)
-        # scrape_flap_page(url, non_prb = True)
+        scrape_flap_page(url)
+        scrape_flap_page(url, non_sc = True)
+        scrape_flap_page(url, non_prb = True)
+    
+    with open("data.json", "w") as file:
+        json.dump(record_list, file)
 
 def scrape_track_page(url, non_sc = False, non_prb = False):
     track_url = base_url + url
@@ -54,7 +61,7 @@ def scrape_track_page(url, non_sc = False, non_prb = False):
             "track": circuit_name,
             "lap_count": lap_count,
             "date": record[0].text,
-            "time": record[1].text,
+            "time": parse_time(record[1].text),
             "video_link": video_link_el["href"] if video_link_el else None,
             "non_sc": non_sc,
             "non_prb": non_prb,
@@ -65,9 +72,11 @@ def scrape_track_page(url, non_sc = False, non_prb = False):
         }
 
         for i in range(lap_count):
-            record_item[f"lap_{i+1}"] = record[5+i].text if record[5+i].text != "-" else None
+            record_item[f"lap_{i+1}"] = parse_lap_time(record[5+i].text)
 
-        add_data(record_item, "mk_ds")
+        #print(record_item)
+        record_list.append(record_item)
+        #add_data(record_item, "mk_ds")
 
 def scrape_flap_page(url, non_sc = False, non_prb = False):
     track_url = base_url + url + "&f=1"
@@ -83,7 +92,6 @@ def scrape_flap_page(url, non_sc = False, non_prb = False):
     main_el = soup.find("div", id = "main")
     circuit_name = main_el.find("h2").text
 
-    record_history = []
     record_history_el = main_el.findAll("table", class_ = "wr")[-1]
     print(circuit_name + " Flap" + (" (Non SC)" if non_sc else "") + (" (Non PRB)" if non_prb else ""))
 
@@ -97,7 +105,7 @@ def scrape_flap_page(url, non_sc = False, non_prb = False):
         record_item = {
             "track": circuit_name,
             "date": record[0].text,
-            "time": record[1].text,
+            "time": parse_time(record[1].text),
             "video_link": video_link_el["href"] if video_link_el else None,
             "player": record[2].text,
             "nation": flag_el["title"] if flag_el else None,
@@ -105,7 +113,7 @@ def scrape_flap_page(url, non_sc = False, non_prb = False):
             "vehicle": record[5].text if record[6].text != "-" else None,
         }
 
-        record_history.append(record_item)
-
-    for record in record_history:
-        add_data(record, "mk_ds", "flap")
+        #add_data(record, "mk_ds", "flap")
+        record_list.append(record_item)
+        #print(record_item)
+        
