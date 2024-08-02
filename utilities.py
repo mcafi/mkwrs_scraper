@@ -1,5 +1,7 @@
 import re
 
+console_list = ["snes", "n64", "gba", "gcn", "ds", "3ds", "wii"]
+
 def parse_time(time):
     time_regex = r"(\d+)?\'?(\d+)\"(\d+)"
     if (not re.match(time_regex, time)):
